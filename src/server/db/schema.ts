@@ -1,10 +1,11 @@
-import { warn } from 'console';
+import { create } from 'domain';
 import { relations, sql } from 'drizzle-orm';
 import {
   index,
   int,
   integer,
   primaryKey,
+  real,
   sqliteTableCreator,
   text,
 } from 'drizzle-orm/sqlite-core';
@@ -51,7 +52,7 @@ export const room = createTable('room', {
     .$defaultFn(() => crypto.randomUUID()),
   name: text(),
   size: integer().notNull(),
-  price: integer().notNull(),
+  price: real().notNull(),
   type: text({ enum: ['bureau', 'studio'] }).notNull(),
 });
 
@@ -61,8 +62,33 @@ export const device = createTable('device', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text().notNull(),
-  price: integer().notNull(),
+  price: real().notNull(),
+  amount: integer().notNull(),
+  type: text({ enum: ['camera', 'micro', 'casque'] }),
 });
+
+export const booking = createTable('booking', {
+  id: text('id', { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  date: integer({ mode: 'timestamp' }).notNull(),
+  guestCount: integer().notNull(),
+  slot: text({ enum: ['matin', 'apres-midi', 'journée'] }).notNull(),
+  roomId: text('room_id', { length: 255 })
+    .notNull().references(() => room.id),
+  userId: text('user_id', { length: 255 })
+    .notNull().references(() => users.id),
+});
+
+export const bookingDevice = createTable('booking_device', {
+  bookingId: text('id', { length: 255 })
+    .notNull(),
+  deviceId: text('id', { length: 255 })
+    .notNull().references(() => device.id),
+}, (t) => [
+  primaryKey({ columns: [t.deviceId, t.bookingId] }),
+]);
 
 // Authentification
 export const users = createTable('user', {
