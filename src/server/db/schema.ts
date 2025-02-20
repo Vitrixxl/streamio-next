@@ -1,4 +1,3 @@
-import { create } from 'domain';
 import { relations, sql } from 'drizzle-orm';
 import {
   index,
@@ -18,43 +17,25 @@ import { type AdapterAccount } from 'next-auth/adapters';
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
 export const createTable = sqliteTableCreator((name) => `streamio_${name}`);
-// CREATE TABLE room(
-//
-//    room_id VARCHAR(200),
-//
-//    room_name VARCHAR(50),
-//
-//    room_size INT,
-//
-//    room_price VARCHAR(50),
-//
-//    rtyp_id VARCHAR(200) NOT NULL,
-//
-//    PRIMARY KEY(room_id),
-//
-//    FOREIGN KEY(rtyp_id) REFERENCES roomType(rtyp_id)
-//
-// );
-// CREATE TABLE device(
-//     dvc_id VARCHAR(200),
-//     dvc_name VARCHAR(50),
-//     dvc_price INT,
-//     dvc_amount INT,
-//     dvct_id VARCHAR(200) NOT NULL,
-//     PRIMARY KEY(dvc_id),
-//     FOREIGN KEY(dvct_id) REFERENCES deviceType(dvct_id)
-// );
+
+export const ROOM_TYPES = ['bureau', 'studio'] as const;
+export const TIME_SLOTS = ['matin', 'apres-midi', 'journée'] as const;
+export const DEVICE_TYPES = ['camera', 'micro', 'casque'] as const;
 
 export const room = createTable('room', {
   id: text('id', { length: 255 })
     .notNull()
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  name: text(),
+  name: text().notNull(),
+  description: text().notNull(),
   size: integer().notNull(),
   price: real().notNull(),
-  type: text({ enum: ['bureau', 'studio'] }).notNull(),
+  type: text({ enum: ROOM_TYPES }).notNull(),
 });
+
+export type RoomType = typeof room.$inferSelect;
+export type InsertRoomType = typeof room.$inferInsert;
 
 export const device = createTable('device', {
   id: text('id', { length: 255 })
@@ -64,8 +45,11 @@ export const device = createTable('device', {
   name: text().notNull(),
   price: real().notNull(),
   amount: integer().notNull(),
-  type: text({ enum: ['camera', 'micro', 'casque'] }),
+  type: text({ enum: DEVICE_TYPES }),
 });
+
+export type DeviceType = typeof device.$inferSelect;
+export type InsertDeviceType = typeof device.$inferInsert;
 
 export const booking = createTable('booking', {
   id: text('id', { length: 255 })
@@ -74,21 +58,37 @@ export const booking = createTable('booking', {
     .$defaultFn(() => crypto.randomUUID()),
   date: integer({ mode: 'timestamp' }).notNull(),
   guestCount: integer().notNull(),
-  slot: text({ enum: ['matin', 'apres-midi', 'journée'] }).notNull(),
+  slot: text({ enum: TIME_SLOTS }).notNull(),
   roomId: text('room_id', { length: 255 })
     .notNull().references(() => room.id),
   userId: text('user_id', { length: 255 })
     .notNull().references(() => users.id),
 });
 
+export type BookingType = typeof booking.$inferSelect;
+export type InsertBookingType = typeof booking.$inferInsert;
+
 export const bookingDevice = createTable('booking_device', {
-  bookingId: text('id', { length: 255 })
+  bookingId: text('booking_id', { length: 255 })
     .notNull(),
-  deviceId: text('id', { length: 255 })
+  deviceId: text('device_id', { length: 255 })
     .notNull().references(() => device.id),
+  amount: integer().notNull(),
 }, (t) => [
   primaryKey({ columns: [t.deviceId, t.bookingId] }),
 ]);
+
+export type BookingDeviceType = typeof bookingDevice.$inferSelect;
+export type InsertBookingDeviceType = typeof bookingDevice.$inferInsert;
+
+export const roomDisabled = createTable('room_disabled', {
+  roomId: text('room_id', { length: 255 }).notNull(),
+  date: integer({ mode: 'timestamp' }).notNull(),
+  slot: text({ enum: ['matin', 'apres-midi', 'journée'] }).notNull(),
+});
+
+export type RoomDisabledType = typeof roomDisabled.$inferSelect;
+export type InsertRoomDisabledType = typeof roomDisabled.$inferInsert;
 
 // Authentification
 export const users = createTable('user', {
