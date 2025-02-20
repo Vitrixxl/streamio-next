@@ -16,27 +16,50 @@ import { type AdapterAccount } from 'next-auth/adapters';
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
 export const createTable = sqliteTableCreator((name) => `streamio_${name}`);
-CREATE TABLE room(
+// CREATE TABLE room(
+//
+//    room_id VARCHAR(200),
+//
+//    room_name VARCHAR(50),
+//
+//    room_size INT,
+//
+//    room_price VARCHAR(50),
+//
+//    rtyp_id VARCHAR(200) NOT NULL,
+//
+//    PRIMARY KEY(room_id),
+//
+//    FOREIGN KEY(rtyp_id) REFERENCES roomType(rtyp_id)
+//
+// );
+// CREATE TABLE device(
+//     dvc_id VARCHAR(200),
+//     dvc_name VARCHAR(50),
+//     dvc_price INT,
+//     dvc_amount INT,
+//     dvct_id VARCHAR(200) NOT NULL,
+//     PRIMARY KEY(dvc_id),
+//     FOREIGN KEY(dvct_id) REFERENCES deviceType(dvct_id)
+// );
 
-   room_id VARCHAR(200),
+export const room = createTable('room', {
+  id: text('id', { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text(),
+  size: integer().notNull(),
+  price: integer().notNull(),
+  type: text({ enum: ['bureau', 'studio'] }).notNull(),
+});
 
-   room_name VARCHAR(50),
-
-   room_size INT,
-
-   room_price VARCHAR(50),
-
-   rtyp_id VARCHAR(200) NOT NULL,
-
-   PRIMARY KEY(room_id),
-
-   FOREIGN KEY(rtyp_id) REFERENCES roomType(rtyp_id)
-
-);
-
-const room = createTable('room',{
-  id: integer()
-})
+export const device = createTable('device', {
+  id: text('id', { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+});
 
 // Authentification
 export const users = createTable('user', {
