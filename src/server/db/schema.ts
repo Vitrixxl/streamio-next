@@ -1,3 +1,4 @@
+import { warn } from 'console';
 import { relations, sql } from 'drizzle-orm';
 import {
   index,
@@ -59,6 +60,8 @@ export const device = createTable('device', {
     .notNull()
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
+  name: text().notNull(),
+  price: integer().notNull(),
 });
 
 // Authentification
