@@ -23,7 +23,7 @@ export const SearchFilter = () => {
     );
     searchParams.set('search', searchFilters.search || '');
     searchParams.set('maxPrice', searchFilters.maxPrice?.toString() || '');
-    router.push(`${pathName}?${searchParams.toString()}`);
+    router.replace(`${pathName}?${searchParams.toString()}`);
   }, [searchFilters]);
   return (
     <div className='flex gap-3 items-center'>

@@ -5,6 +5,10 @@ import { type Metadata } from 'next';
 
 import { TRPCReactProvider } from '~/trpc/react';
 import { AccountButtonHeader } from '~/app/_components/account-button-header';
+import Link from 'next/link';
+import { headers } from 'next/headers';
+import { auth } from '~/lib/auth/server/auth';
+import { InitWrapper } from '~/app/_components/init-wrapper';
 
 export const metadata: Metadata = {
   title: 'Create T3 App',
@@ -12,23 +16,33 @@ export const metadata: Metadata = {
   icons: [{ rel: 'icon', url: '/favicon.ico' }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   return (
-    <html lang='en' className={`${GeistSans.variable} `}>
-      <body className='dark'>
-        <header className='flex justify-between px-2 container w-full py-2 mx-auto'>
-          <h1 className='font-black text-2xl'>
-            STREAM.<span className='text-primary'>IO</span>
-          </h1>
-          <AccountButtonHeader />
-        </header>
+    <TRPCReactProvider>
+      <html lang='en' className={`${GeistSans.variable} `}>
+        <body className='dark  h-dvh'>
+          <div className='flex flex-col gap-2 h-dvh'>
+            <header className='flex justify-between px-2 container w-full py-2 mx-auto mb-2 sticky top-0'>
+              <Link className='font-black text-2xl' href='/'>
+                STREAM<span className='ml-1 p-1 px-2 rounded text-background bg-primary'>
+                  IO
+                </span>
+              </Link>
+              <AccountButtonHeader session={session} />
+            </header>
 
-        <main className='container px-2 mx-auto'>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-        </main>
-      </body>
-    </html>
+            <main className='container px-2 mx-auto flex-1 min-h-0 '>
+              {children}
+            </main>
+          </div>
+          <InitWrapper />
+        </body>
+      </html>
+    </TRPCReactProvider>
   );
 }

@@ -38,8 +38,8 @@
     --card-foreground: 60 9.1% 97.8%;
     --popover: 20 14.3% 4.1%;
     --popover-foreground: 60 9.1% 97.8%;
-    --primary: 20.5 90.2% 48.2%;
-    --primary-foreground: 60 9.1% 97.8%;
+    --primary: 34.55 93.33% 52.94%;
+    --primary-foreground: 20 14.3% 4.1%;
     --secondary: 12 6.5% 15.1%;
     --secondary-foreground: 60 9.1% 97.8%;
     --muted: 12 6.5% 15.1%;
@@ -66,4 +66,50 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes stream {
+  0% {
+    max-width: 0px;
+  }
+  100% {
+    max-width: 500px;
+  }
+}
+.stream-text {
+  animation: stream 0.7s linear;
+}
+
+@keyframes io {
+  0% {
+    opacity: 0;
+    transform: rotate(-160deg);
+    margin-left: -100px;
+  }
+
+  50% {
+    margin-left: -100px;
+  }
+
+  90% {
+    opacity: 0;
+  }
+
+  100% {
+    transform: rotate(0deg);
+    margin-left: 0;
+    opacity: 1;
+  }
+}
+.logo-animation {
+  animation: io 1.4s linear;
 }

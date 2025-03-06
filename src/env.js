@@ -7,13 +7,13 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    AUTH_SECRET: process.env.NODE_ENV === 'production'
-      ? z.string()
-      : z.string().optional(),
     DATABASE_URL: z.string().url(),
+    STRIPE_API_KEY: z.string(),
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
+    BETTER_AUTH_SECRET: z.string(),
+    BETTER_AUTH_URL: z.string(),
   },
 
   /**
@@ -23,6 +23,7 @@ export const env = createEnv({
    */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    // NEXT_PUBLIC_BASE_URL: z.string(),
   },
 
   /**
@@ -30,9 +31,12 @@ export const env = createEnv({
    * middlewares) or client-side so we need to destruct manually.
    */
   runtimeEnv: {
-    AUTH_SECRET: process.env.AUTH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    STRIPE_API_KEY: process.env.STRIPE_API_KEY,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    // NEXT_PUBLIC_BASE_URL: process.env.BASE_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
@@ -41,7 +45,6 @@ export const env = createEnv({
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   /**
    * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
-   * `SOME_VAR=''` will throw an error.
-   */
+   * `SOME_VAR=''` will throw an error.  */
   emptyStringAsUndefined: true,
 });

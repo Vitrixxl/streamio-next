@@ -11,7 +11,7 @@ export const RoomList = () => {
   const maxPrice = params.get('maxPrice');
   const date = params.get('date');
 
-  const { data } = api.room.search.useQuery({
+  const [data] = api.room.search.useSuspenseQuery({
     search,
     roomType: roomType
       ? roomType.split(',') as typeof ROOM_TYPES[number][]

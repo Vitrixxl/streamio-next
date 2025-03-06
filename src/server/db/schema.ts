@@ -1,14 +1,11 @@
-import { relations, sql } from 'drizzle-orm';
+import { boolean } from 'drizzle-orm/mysql-core';
 import {
-  index,
-  int,
   integer,
   primaryKey,
   real,
   sqliteTableCreator,
   text,
 } from 'drizzle-orm/sqlite-core';
-import { type AdapterAccount } from 'next-auth/adapters';
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -27,11 +24,12 @@ export const room = createTable('room', {
     .notNull()
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  name: text().notNull(),
-  description: text().notNull(),
-  size: integer().notNull(),
-  price: real().notNull(),
-  type: text({ enum: ROOM_TYPES }).notNull(),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  img: text('img').notNull(),
+  size: integer('size').notNull(),
+  price: real('price').notNull(),
+  type: text('type', { enum: ROOM_TYPES }).notNull(),
 });
 
 export type RoomType = typeof room.$inferSelect;
@@ -42,10 +40,10 @@ export const device = createTable('device', {
     .notNull()
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  name: text().notNull(),
-  price: real().notNull(),
-  amount: integer().notNull(),
-  type: text({ enum: DEVICE_TYPES }),
+  name: text('name').notNull(),
+  price: real('price').notNull(),
+  amount: integer('amount').notNull(),
+  type: text('type', { enum: DEVICE_TYPES }).notNull(),
 });
 
 export type DeviceType = typeof device.$inferSelect;
@@ -56,13 +54,17 @@ export const booking = createTable('booking', {
     .notNull()
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  date: integer({ mode: 'timestamp' }).notNull(),
-  guestCount: integer().notNull(),
-  slot: text({ enum: TIME_SLOTS }).notNull(),
+  date: integer('date', { mode: 'timestamp' }).notNull(),
+  guestCount: integer('guest_count').notNull(),
+  slot: text('slot', { enum: TIME_SLOTS }).notNull(),
+  price: integer('price').notNull(),
   roomId: text('room_id', { length: 255 })
-    .notNull().references(() => room.id),
+    .notNull().references(() => room.id, { onDelete: 'cascade' }),
   userId: text('user_id', { length: 255 })
-    .notNull().references(() => users.id),
+    .notNull().references(() => user.id, { onDelete: 'cascade' }),
+  // status : text("status",{enum:["cancel"]})
+  isCancel: integer('is_cancel', { mode: 'boolean' }).notNull().default(false),
+  paymentIntent: text('payment_intent', { length: 255 }).notNull(),
 });
 
 export type BookingType = typeof booking.$inferSelect;
@@ -70,101 +72,83 @@ export type InsertBookingType = typeof booking.$inferInsert;
 
 export const bookingDevice = createTable('booking_device', {
   bookingId: text('booking_id', { length: 255 })
-    .notNull(),
+    .notNull().references(() => booking.id, { onDelete: 'cascade' }),
   deviceId: text('device_id', { length: 255 })
-    .notNull().references(() => device.id),
-  amount: integer().notNull(),
-}, (t) => [
-  primaryKey({ columns: [t.deviceId, t.bookingId] }),
-]);
+    .notNull().references(() => device.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+}, (t) => ({
+  primaryKey: primaryKey({
+    columns: [t.bookingId, t.deviceId], // Définition de la clé composite
+  }),
+}));
 
 export type BookingDeviceType = typeof bookingDevice.$inferSelect;
 export type InsertBookingDeviceType = typeof bookingDevice.$inferInsert;
 
 export const roomDisabled = createTable('room_disabled', {
-  roomId: text('room_id', { length: 255 }).notNull(),
-  date: integer({ mode: 'timestamp' }).notNull(),
-  slot: text({ enum: ['matin', 'apres-midi', 'journée'] }).notNull(),
+  roomId: text('room_id', { length: 255 }).notNull().references(() => room.id, {
+    onDelete: 'cascade',
+  }),
+  date: integer('date', { mode: 'timestamp' }).notNull(),
+  slot: text('slot', { enum: ['matin', 'apres-midi', 'journée'] }).notNull(),
 });
 
 export type RoomDisabledType = typeof roomDisabled.$inferSelect;
 export type InsertRoomDisabledType = typeof roomDisabled.$inferInsert;
 
 // Authentification
-export const users = createTable('user', {
-  id: text('id', { length: 255 })
-    .notNull()
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text('name', { length: 255 }),
-  email: text('email', { length: 255 }).notNull(),
-  emailVerified: int('email_verified', {
-    mode: 'timestamp',
-  }).default(sql`(unixepoch())`),
-  image: text('image', { length: 255 }),
+
+export const user = createTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: integer('email_verified', { mode: 'boolean' }).notNull(),
+  image: text('image'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  isAdmin: integer('is_admin', { mode: 'boolean' }).notNull(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts),
-}));
-
-export const accounts = createTable(
-  'account',
-  {
-    userId: text('user_id', { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    type: text('type', { length: 255 })
-      .$type<AdapterAccount['type']>()
-      .notNull(),
-    provider: text('provider', { length: 255 }).notNull(),
-    providerAccountId: text('provider_account_id', { length: 255 }).notNull(),
-    refresh_token: text('refresh_token'),
-    access_token: text('access_token'),
-    expires_at: int('expires_at'),
-    token_type: text('token_type', { length: 255 }),
-    scope: text('scope', { length: 255 }),
-    id_token: text('id_token'),
-    session_state: text('session_state', { length: 255 }),
-  },
-  (account) => ({
-    compoundKey: primaryKey({
-      columns: [account.provider, account.providerAccountId],
-    }),
-    userIdIdx: index('account_user_id_idx').on(account.userId),
+export const session = createTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id').notNull().references(() => user.id, {
+    onDelete: 'cascade',
   }),
-);
+});
 
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, { fields: [accounts.userId], references: [users.id] }),
-}));
-
-export const sessions = createTable(
-  'session',
-  {
-    sessionToken: text('session_token', { length: 255 }).notNull().primaryKey(),
-    userId: text('userId', { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    expires: int('expires', { mode: 'timestamp' }).notNull(),
-  },
-  (session) => ({
-    userIdIdx: index('session_userId_idx').on(session.userId),
+export const account = createTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id').notNull().references(() => user.id, {
+    onDelete: 'cascade',
   }),
-);
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, { fields: [sessions.userId], references: [users.id] }),
-}));
-
-export const verificationTokens = createTable(
-  'verification_token',
-  {
-    identifier: text('identifier', { length: 255 }).notNull(),
-    token: text('token', { length: 255 }).notNull(),
-    expires: int('expires', { mode: 'timestamp' }).notNull(),
-  },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: integer('access_token_expires_at', {
+    mode: 'timestamp',
   }),
-);
+  refreshTokenExpiresAt: integer('refresh_token_expires_at', {
+    mode: 'timestamp',
+  }),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const verification = createTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});
