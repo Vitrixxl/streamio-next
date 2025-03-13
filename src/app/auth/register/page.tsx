@@ -6,8 +6,8 @@ import { FormItem } from '~/components/form-item';
 import { Button } from '~/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { registerSchema } from '~/server/api/schema/auth';
-import { authClient } from '~/lib/auth-client';
 import { revalidatePath } from 'next/cache';
+import { authClient } from '~/lib/auth/client/auth-client';
 
 export default function RegisterPage() {
   const { register, handleSubmit, formState: { errors } } = useForm({

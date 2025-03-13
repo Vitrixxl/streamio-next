@@ -45,11 +45,15 @@ export async function DELETE(req: NextRequest) {
   }, { status: 201 });
 }
 export async function PUT(req: NextRequest) {
-  const { data, error } = updateDeviceSchema.safeParse(req.body);
+  const { data, error } = updateDeviceSchema.safeParse(await req.json());
   if (error) {
+    console.error(error);
     return NextResponse.json({
       message: error.message,
     });
   }
   await db.update(device).set(data).where(eq(device.id, data.id));
+  return NextResponse.json({
+    message: 'updated',
+  });
 }

@@ -44,6 +44,9 @@ export const device = createTable('device', {
   price: real('price').notNull(),
   amount: integer('amount').notNull(),
   type: text('type', { enum: DEVICE_TYPES }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(
+    () => new Date(),
+  ),
 });
 
 export type DeviceType = typeof device.$inferSelect;

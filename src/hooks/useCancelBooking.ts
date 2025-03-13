@@ -11,7 +11,6 @@ export const useCancelBooking = (bookingId: string, userId: string) => {
         await utils.booking.getAll.cancel(),
         await utils.booking.getForUser.cancel(),
       ]);
-      console.log(prevGlobalBookings, prevUserBookings);
       if (prevGlobalBookings) {
         utils.booking.getAll.setData(
           undefined,
@@ -32,12 +31,14 @@ export const useCancelBooking = (bookingId: string, userId: string) => {
       if (prevUserBookings) {
         utils.booking.getForUser.setData(
           { userId },
-          prevUserBookings.map((b) => {
-            if (b.booking.id == bookingId) {
-              return { ...b, booking: { ...b.booking, isCancel: true } };
-            }
-            return b;
-          }),
+          {
+            bookings: prevUserBookings.bookings.map((b) => {
+              if (b.booking.id == bookingId) {
+                return { ...b, booking: { ...b.booking, isCancel: true } };
+              }
+              return b;
+            }),
+          },
         );
       }
       return { prevGlobalBookings, prevUserBookings };

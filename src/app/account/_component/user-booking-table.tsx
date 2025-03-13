@@ -1,3 +1,4 @@
+'use client';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { DeviceListDialog } from '~/app/account/_component/device-list-dialog';

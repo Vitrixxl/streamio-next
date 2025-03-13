@@ -213,6 +213,7 @@ export const bookingRouter = createTRPCRouter({
             message: 'You do not have this booking',
           });
         }
+        console.log(currentBooking);
         await stripe.refunds.create({
           payment_intent: currentBooking.paymentIntent,
         });

@@ -1,0 +1,1 @@
+ALTER TABLE `streamio_device` ADD `created_at` integer NOT NULL;
