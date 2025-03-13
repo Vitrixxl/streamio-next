@@ -3,7 +3,7 @@ import { crendentialRegisterSchema } from '~/server/api/schema/auth';
 import { hash } from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { db } from '~/server/db';
-import { users } from '~/server/db/schema';
+// import { users } from '~/server/db/schema';
 
 export async function authRegister(registerValue: {}) {
   const { data, error } = crendentialRegisterSchema.safeParse(registerValue);

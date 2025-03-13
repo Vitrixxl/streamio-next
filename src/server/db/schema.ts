@@ -109,7 +109,7 @@ export const user = createTable('user', {
   image: text('image'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-  isAdmin: integer('is_admin', { mode: 'boolean' }).notNull(),
+  isAdmin: integer('is_admin', { mode: 'boolean' }).default(false).notNull(),
 });
 
 export const session = createTable('session', {

@@ -6,7 +6,6 @@ import { FormItem } from '~/components/form-item';
 import { Button } from '~/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { registerSchema } from '~/server/api/schema/auth';
-import { revalidatePath } from 'next/cache';
 import { authClient } from '~/lib/auth/client/auth-client';
 
 export default function RegisterPage() {
@@ -24,7 +23,6 @@ export default function RegisterPage() {
     });
 
     if (!error) {
-      revalidatePath('/');
       return router.push('/');
     }
     console.error(error);
