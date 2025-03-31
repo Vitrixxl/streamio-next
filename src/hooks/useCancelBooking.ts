@@ -56,7 +56,6 @@ export const useCancelBooking = (bookingId: string, userId: string) => {
 
   const cancel = async () => {
     const data = utils.booking.getForUser.getData({ userId });
-    console.log(data);
     cancelBookingMutation.mutate({ bookingId });
   };
 
