@@ -9,10 +9,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "~/components/ui/table";
-import { Button } from "~/components/ui/button";
-import { LucideEdit, LucideTrash } from "lucide-react";
 import { DeleteRoomDialog } from "~/app/account/_component/delete-room-dialog";
 import { api } from "~/trpc/react";
+import { EditRoomDialog } from "./edit-room-dialog";
 export const AdminRoomsTable = ({ rooms }: { rooms: RoomType[] }) => {
 	const { data } = api.room.search.useQuery({}, { initialData: rooms });
 	return (
@@ -36,9 +35,7 @@ export const AdminRoomsTable = ({ rooms }: { rooms: RoomType[] }) => {
 							<TableCell>{r.price}</TableCell>
 							<TableCell>
 								<div className="flex gap-2">
-									<Button variant="ghost" size="icon">
-										<LucideEdit />
-									</Button>
+									<EditRoomDialog roomId={r.id} />
 									<DeleteRoomDialog roomId={r.id} />
 								</div>
 							</TableCell>
