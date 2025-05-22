@@ -1,91 +1,51 @@
-"use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { v4 as uuid } from "uuid";
-import { LucidePlusCircle } from "lucide-react";
+import { LucideEdit, LucideSave } from "lucide-react";
 import React from "react";
-import { Controller, Form, useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { FileInput } from "~/components/file-input";
 import { FormItem } from "~/components/form-item";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
+	DialogTitle,
 	DialogTrigger,
 } from "~/components/ui/dialog";
-import { createRoomSchemaClient } from "~/server/api/schema/room";
+import { updateRoomSchema } from "~/server/api/schema/room";
 import { RoomType } from "~/server/db/schema";
-import { api } from "~/trpc/react";
-import { safeFetch } from "~/lib/utils";
-import { extension } from "mime-types";
 
-export const CreateRoomDialog = () => {
-	const utils = api.useUtils();
+export function EditRoomDialog({ roomData }: { roomData: RoomType }) {
 	const [isOpen, setIsOpen] = React.useState(false);
-	const createRoomMutation = api.room.create.useMutation({
-		onMutate: async (values) => {
-			const prevData = utils.room.search.getData({});
-			console.log(values);
 
-			utils.room.search.setData(
-				{},
-				prevData ? [...prevData, values] : [values],
-			);
-			setIsOpen(false);
-			return { prevData };
-		},
-
-		onError: async (err, data, ctx) => {
-			console.log(data);
-			console.error(err);
-			if (!ctx?.prevData) return;
-			utils.room.search.setData({}, ctx.prevData);
-		},
-	});
 	const {
 		register,
-		control,
 		handleSubmit,
-		formState: { errors },
-	} = useForm({
-		resolver: zodResolver(createRoomSchemaClient),
+		control,
+		formState: { isSubmitting, errors },
+	} = useForm<z.infer<typeof updateRoomSchema>>({
+		resolver: zodResolver(updateRoomSchema),
 	});
-	const onSubmit = async (data: typeof createRoomSchemaClient._type) => {
-		const formData = new FormData();
-		formData.set("img", data.image);
-		const result = await safeFetch<{ id: string; ext: string }>(
-			"/api/admin/upload/room-img",
-			{ body: formData, method: "POST" },
-		);
-		if (!result.success) {
-			console.error(result.message);
-			return;
-		}
-		const { id, ext } = result.data;
-		console.log(ext);
-		const completedData: RoomType = {
-			id: result.data.id,
-			name: data.name,
-			description: data.description,
-			img: `http://localhost:3000/api/files/room-img/${id}.${ext}`,
-			type: data.type,
-			price: data.price,
-			size: data.size,
-		};
-		createRoomMutation.mutate(completedData);
-	};
-	console.log(errors);
+	async function onSubmit(formData: typeof updateRoomSchema._type) {
+		//
+	}
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button className="w-fit">
-					Ajouter une salle <LucidePlusCircle />
+				<Button size="icon" variant="ghost">
+					<LucideEdit />
 				</Button>
 			</DialogTrigger>
+
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Creer une nouvelle salle</DialogTitle>
+					<DialogTitle>Modifier la salle</DialogTitle>
+					<DialogDescription>
+						Modifiez les informations de la salle que vous souhaitez mettre à
+						jour puis cliquez sur enregister.
+					</DialogDescription>
 				</DialogHeader>
 				<form
 					className="grid grid-cols-2 gap-2"
@@ -185,4 +145,4 @@ export const CreateRoomDialog = () => {
 			</DialogContent>
 		</Dialog>
 	);
-};
+}

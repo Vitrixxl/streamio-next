@@ -41,7 +41,7 @@ export default async function RootLayout({
 							{children}
 						</main>
 					</div>
-					{/* <InitWrapper /> */}
+					<InitWrapper />
 				</body>
 			</html>
 		</TRPCReactProvider>
