@@ -1,8 +1,8 @@
-import { TRPCError } from '@trpc/server';
 import { and, eq, inArray, like, lt } from 'drizzle-orm';
-import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 import {
+  addRatingSchema,
+  addRatingSchemaClient,
   createRoomSchema,
   getRoomDataSchema,
   searchRoomSchema,
@@ -10,6 +10,7 @@ import {
 } from '~/server/api/schema/room';
 import {
   createTRPCRouter,
+  protectedProcedure,
   publicProcedure,
   sudoProcedure,
 } from '~/server/api/trpc';
@@ -18,7 +19,9 @@ import {
   bookingDevice,
   device,
   room,
+  roomRates,
   TIME_SLOTS,
+  user,
 } from '~/server/db/schema';
 
 export const roomRouter = createTRPCRouter({
@@ -75,16 +78,38 @@ export const roomRouter = createTRPCRouter({
         };
       });
 
+      const ratings = await db.select().from(roomRates).where(
+        eq(roomRates.roomId, id),
+      );
+
       return {
         room: currentRoom,
         availabilities: TIME_SLOTS.filter((timeslot) =>
           !usedTimeSlot.includes(timeslot)
         ),
         availableDivices,
+        ratings,
       };
     },
   ),
 
+  addRating: protectedProcedure.input(addRatingSchema).mutation(
+    async ({ ctx: { db, session: { user: u } }, input }) => {
+      const canWrite = await db.select().from(booking).innerJoin(
+        user,
+        eq(booking.userId, u.id),
+      ).innerJoin(room, eq(booking.roomId, input.roomId)).then((data) =>
+        data.length > 0
+      );
+      if (!canWrite) {
+        return {
+          data: null,
+          error: "Vous n'avez pas effectué de reservation dans cette salle",
+        };
+      }
+      await db.insert(roomRates).values({ ...input, userId: u.id });
+    },
+  ),
   create: sudoProcedure.input(createRoomSchema).mutation(
     async ({ ctx: { db }, input: { ...roomData } }) => {
       await db.insert(room).values(roomData);

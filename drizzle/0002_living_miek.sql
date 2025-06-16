@@ -1,1 +1,1 @@
-ALTER TABLE `streamio_device` ADD `created_at` integer NOT NULL;
+select 1 from streamio_user

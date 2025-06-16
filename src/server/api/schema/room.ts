@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z, ZodError } from 'zod';
-import { room, ROOM_TYPES } from '~/server/db/schema';
+import { room, ROOM_TYPES, roomRates } from '~/server/db/schema';
 
 export const searchRoomSchema = z.object({
   search: z.string().optional().nullable(),
@@ -42,3 +42,14 @@ export const updateRoomSchema = createSelectSchema(room).omit({ img: true })
       if (!isImg) throw new Error('');
     }),
   });
+
+export const addRatingSchema = createSelectSchema(roomRates).omit({
+  id: true,
+  userId: true,
+});
+
+export const addRatingSchemaClient = createSelectSchema(roomRates).omit({
+  id: true,
+  roomId: true,
+  userId: true,
+});

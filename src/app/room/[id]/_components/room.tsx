@@ -1,7 +1,10 @@
 'use client';
-import { DialogTitle, DialogTrigger } from '@radix-ui/react-dialog';
-import { LucideImage, LucideMinus, LucidePlus } from 'lucide-react';
+import { v4 as uuid } from 'uuid';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LucideImage, LucideMinus, LucidePlus, LucideStar } from 'lucide-react';
 import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { FormItem } from '~/components/form-item';
 import {
   Accordion,
   AccordionContent,
@@ -15,14 +18,32 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '~/components/ui/dialog';
+import { Label } from '~/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select';
 import { Slider } from '~/components/ui/slider';
+import { Textarea } from '~/components/ui/textarea';
 import { useBookRoom } from '~/hooks/useBookRoom';
-import { DeviceType, TIME_SLOTS } from '~/server/db/schema';
+import { authClient } from '~/lib/auth/client/auth-client';
+import { addRatingSchemaClient } from '~/server/api/schema/room';
+import { DeviceType, roomRates, TIME_SLOTS } from '~/server/db/schema';
 import { api } from '~/trpc/react';
 
 export const Room = ({ id }: { id: string }) => {
+  const utils = api.useUtils();
+  const { mutateAsync } = api.room.addRating.useMutation();
+  const [isOpen, setIsOpen] = React.useState(false);
   const [localData, setLocalData] = React.useState<typeof data>();
+  const { data: authData } = authClient.useSession();
   const launchBookingProcess = useBookRoom(id);
   const [date, setDate] = React.useState<Date>(new Date());
   const [slot, setSlot] = React.useState<typeof TIME_SLOTS[number]>();
@@ -32,15 +53,26 @@ export const Room = ({ id }: { id: string }) => {
     { deviceId: string; amount: number }[]
   >([]);
 
+  const {
+    register,
+    control,
+    handleSubmit: rateSubmit,
+    formState: { errors },
+    setError,
+  } = useForm({
+    resolver: zodResolver(addRatingSchemaClient),
+  });
+
   const { data } = api.room.getRoomData.useQuery({
     id,
     date,
   });
 
-  const { room, availabilities, availableDivices } = localData || {
+  const { room, availabilities, availableDivices, ratings } = localData || {
     room: null,
     availabilities: [],
     availableDivices: [],
+    ratings: [],
   };
 
   const addDevice = (device: DeviceType) => {
@@ -80,6 +112,39 @@ export const Room = ({ id }: { id: string }) => {
     });
   };
 
+  const onSubmit = async (data: typeof addRatingSchemaClient._type) => {
+    const prevData = utils.room.getRoomData.getData({
+      id,
+      date,
+    });
+    if (!prevData || !authData) return;
+    try {
+      const a = await mutateAsync({ ...data, roomId: id });
+      if (a?.error) {
+        setError('root', { message: a.error });
+        return;
+      }
+      //@ts-ignore
+      utils.room.getRoomData.setQueriesData({ id, date }, {}, {
+        ...prevData,
+        ratings: prevData.ratings
+          ? [...prevData.ratings, {
+            ...data,
+            id: uuid(),
+            userId: authData.user.id,
+            roomId: id,
+          }]
+          : [{ ...data, id: uuid(), userId: authData.user.id, roomId: id }],
+      });
+      setIsOpen(false);
+    } catch (err) {
+      console.error(err);
+      setError('root', {
+        message: "Une erreur a eu lieu lors de l'envoie de la note",
+      });
+    }
+  };
+
   React.useEffect(() => {
     setSlot(undefined);
     setDevices([]);
@@ -90,6 +155,12 @@ export const Room = ({ id }: { id: string }) => {
   }, [data]);
   if (!room) return;
 
+  let totalRate = 0;
+  if (ratings) {
+    for (const r of ratings) {
+      totalRate += Number(r.rate);
+    }
+  }
   return (
     <div className='grid grid-cols-[1fr_auto] gap-4'>
       <div className='flex flex-col gap-4'>
@@ -109,12 +180,88 @@ export const Room = ({ id }: { id: string }) => {
           <h1 className='text-2xl font-semibold'>{room.name}</h1>
           <h2 className='text-2xl font-semibold'>{room.price} €</h2>
         </div>
-        <p className='text-muted-foreground'>{room.description}</p>
+        <div className='flex items-center justify-between'>
+          <p className='text-muted-foreground'>{room.description}</p>
+          <div className='flex items-center gap-2'>
+            <span className='text-muted-foreground text-sm'>
+              Avis - {ratings ? ratings.length : 0}
+            </span>
+            <div className='flex gap-1'>
+              {Array.from({
+                length: Math.floor(
+                  totalRate / (ratings ? ratings.length || 1 : 1),
+                ),
+              }).map((_, i) => <LucideStar key={i} />)}
+            </div>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
+                <Button>Ajouter une note</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogTitle>Ajouter une note</DialogTitle>
+                <DialogDescription>
+                  Vous pouvez si vous le souhaitez ajouter une commentaire a
+                  votre note
+                </DialogDescription>
+                <div className='flex flex-col gap-2'>
+                  <form
+                    className='flex flex-col gap-2'
+                    onSubmit={rateSubmit(onSubmit)}
+                  >
+                    <div>
+                      <Controller
+                        control={control}
+                        name='rate'
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder='Selectionnez la note' />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <SelectItem
+                                    value={(i + 1).toString()}
+                                    key={i}
+                                  >
+                                    {i + 1}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                    <FormItem
+                      {...register('comment')}
+                      label='Commentaire'
+                      id='comment'
+                      error={errors.comment?.message}
+                      itemType='textarea'
+                      rows={8}
+                    >
+                    </FormItem>
+                    <Button className='w-fit ml-auto'>Ajouter</Button>
+                    {errors.root && (
+                      <p className='text-sm text-destructive'>
+                        {errors.root.message}
+                      </p>
+                    )}
+                  </form>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
       </div>
       <div className='h-fit rounded-2xl border p-2 flex flex-col gap-2 pb-4'>
         <Calendar
           mode='single'
-          onSelect={(day) => setDate(day)}
+          onSelect={(day) => setDate(day as Date)}
           selected={date}
           disabled={{ before: new Date() }}
         />

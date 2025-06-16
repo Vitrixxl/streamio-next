@@ -1,4 +1,3 @@
-import { boolean } from 'drizzle-orm/mysql-core';
 import {
   integer,
   primaryKey,
@@ -32,6 +31,16 @@ export const room = createTable('room', {
   type: text('type', { enum: ROOM_TYPES }).notNull(),
 });
 
+export const roomRates = createTable('room_rates', {
+  id: text('id', { length: 255 }).primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  rate: text('rate', { length: 1, enum: ['0', '1', '2', '3', '4', '5'] })
+    .notNull(),
+  comment: text('comment', { length: 1000 }),
+  userId: text('user_id').references(() => user.id).notNull(),
+  roomId: text('room_id').references(() => room.id).notNull(),
+});
+
 export type RoomType = typeof room.$inferSelect;
 export type InsertRoomType = typeof room.$inferInsert;
 
@@ -42,6 +51,7 @@ export const device = createTable('device', {
     .$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
   price: real('price').notNull(),
+  image: text('image'),
   amount: integer('amount').notNull(),
   type: text('type', { enum: DEVICE_TYPES }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(
